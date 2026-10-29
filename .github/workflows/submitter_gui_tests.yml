@@ -159,7 +159,11 @@ jobs:
         env:
           HATCH_PYTHON: ${{ steps.setup-python.outputs.python-path }}
         run: |
-          HATCH_ENV_PYTHON=$(hatch -e integ-gui run python -c "import os,sys; print(os.path.realpath(sys.executable))")
+          # Create the environment first: on creation pip also writes to stdout, which would end up
+          # in the captured path.
+          hatch env create integ-gui
+          HATCH_ENV_PYTHON=$(hatch -e integ-gui run python -c "import os,sys; print(os.path.realpath(sys.executable))" | tail -n 1)
+          echo "Granting Accessibility to: $HATCH_ENV_PYTHON"
           SETUP_PYTHON=$(python3 -c "import os,sys; print(os.path.realpath(sys.executable))")
           BLENDER_BIN="/Applications/Blender.app/Contents/MacOS/Blender"
           for BIN_PATH in "$SETUP_PYTHON" "$HATCH_ENV_PYTHON" "$BLENDER_BIN"; do
