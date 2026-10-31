@@ -94,6 +94,40 @@ hatch run integ-ci:setup --install-x11
 
 The `pipeline/setup-runner.py` script downloads and installs Blender versions, then installs the submitter addon.
 
+#### Submitter GUI Tests (integ-gui environment)
+
+Each test in `test/integ_gui/` launches real Blender with this repo's submitter add-on and opens the submitter dialog. It changes settings in the dialog with [xa11y](https://github.com/xa11y/xa11y) and presses Submit. Then it checks the CreateJob request that an in-process mock Deadline Cloud backend received, or the error the submitter showed instead. No AWS account is needed. The **Submitter GUI Tests** workflow (`submitter_gui_tests.yml`) runs them on Linux, macOS and Windows for every mainline push and pull request.
+
+To run it locally:
+
+1. Get Blender. To use the same installer as CI, download it with `fetch_blender.py`, which checks the SHA-256 digests in `pipeline/setup-runner.py`:
+   ```bash
+   python test/integ_gui/fetch_blender.py 5.2.1 linux-x64 /tmp/blender.tar.xz   # or windows-x64, macos-arm64
+   ```
+1. Set `BLENDER_EXECUTABLE` to the Blender executable.
+1. Pick a Python with the same major.minor as Blender's bundled Python, because Blender loads the test environment's packages. That's 3.11 for Blender 4.2–5.0 and 3.13 for 5.1 and later (`BLENDER_PYTHON_VERSIONS` in `pipeline/setup-runner.py`). The test stops early if they don't match.
+1. Run the test from a desktop session that exposes accessibility:
+   - **macOS**: grant your terminal and Blender the Accessibility permission (System Settings > Privacy & Security > Accessibility).
+   - **Windows**: run it from an interactive desktop session.
+   - **Linux**: either of the above, or headless under Xvfb with AT-SPI. Qt also needs `libxcb-cursor`.
+   ```bash
+   HATCH_PYTHON=python3.13 hatch run integ-gui:test
+
+   # Headless Linux:
+   dbus-run-session -- bash -c '
+     Xvfb :99 -screen 0 1920x1080x24 -ac & export DISPLAY=:99; sleep 1
+     export QT_ACCESSIBILITY=1 QT_LINUX_ACCESSIBILITY_ALWAYS_ON=1
+     /usr/libexec/at-spi-bus-launcher --launch-immediately & sleep 1
+     /usr/libexec/at-spi2-registryd & sleep 1
+     HATCH_PYTHON=python3.13 hatch run integ-gui:test'
+   ```
+
+To run some of the tests, pass the test directory and a `-k` filter, for example `hatch run integ-gui:test test/integ_gui -k frame_range`.
+
+On failure a test saves a screenshot, the accessibility tree and Blender's output to its own folder under `GUI_TEST_ARTIFACT_DIR`, or under a pytest temporary directory if that isn't set. CI uploads them as a workflow artifact.
+
+To add a test, write a `configure(dialog)` function that changes the dialog through the `SubmitterDialog` helpers in `submitter_ui.py`. Then pass it to `gui_submitter.submit()`, which returns the CreateJob request, or to `gui_submitter.submit_expecting_error()`. The helpers find controls by accessible name, so give a new control in `scene_settings_widget.py` one with `setAccessibleName`. Qt on Linux ignores that name for combo boxes and uses their current text instead.
+
 ### Manual Installation
 
 These instructions make the following assumptions:
