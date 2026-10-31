@@ -54,29 +54,39 @@ class SceneSettingsWidget(QWidget):
         """Set up the UI."""
         layout = QGridLayout(self)
 
+        # Each control gets an accessible name matching its label. Without one, screen readers and
+        # UI tests see text fields as unnamed. Qt's Linux accessibility still names combo boxes
+        # after their current text.
+
         qt_pos_index = 0
         self.proj_path_txt = QLineEdit(self)
         layout.addWidget(QLabel("Project Path"), qt_pos_index, 0)
         layout.addWidget(self.proj_path_txt, qt_pos_index, 1)
         self.proj_path_txt.setReadOnly(True)
+        self.proj_path_txt.setAccessibleName("Project Path")
 
         qt_pos_index += 1
         self.op_dir_txt = FileSearchLineEdit(directory_only=True)
+        self.op_dir_txt.text_line.setAccessibleName("Output Directory")
+        self.op_dir_txt.button.setAccessibleName("Browse Output Directory")
         layout.addWidget(QLabel("Output Directory"), qt_pos_index, 0)
         layout.addWidget(self.op_dir_txt, qt_pos_index, 1)
 
         qt_pos_index += 1
         self.op_file_txt = QLineEdit(self)
+        self.op_file_txt.setAccessibleName("Output File Prefix")
         layout.addWidget(QLabel("Output File Prefix"), qt_pos_index, 0)
         layout.addWidget(self.op_file_txt, qt_pos_index, 1)
 
         qt_pos_index += 1
         self.scenes_box = QComboBox(self)
+        self.scenes_box.setAccessibleName("Scene")
         layout.addWidget(QLabel("Scene"), qt_pos_index, 0)
         layout.addWidget(self.scenes_box, qt_pos_index, 1)
 
         qt_pos_index += 1
         self.render_engine_box = QComboBox(self)
+        self.render_engine_box.setAccessibleName("Render Engine")
         engine_items = [
             ("eevee", "eevee"),
             ("cycles", "cycles"),
@@ -89,6 +99,7 @@ class SceneSettingsWidget(QWidget):
 
         qt_pos_index += 1
         self.layers_box = QComboBox(self)
+        self.layers_box.setAccessibleName("View Layers")
         self.scenes_box.currentIndexChanged.connect(self._fill_view_layers_box)
         layout.addWidget(QLabel("View Layers"), qt_pos_index, 0)
         layout.addWidget(self.layers_box, qt_pos_index, 1)
@@ -96,12 +107,14 @@ class SceneSettingsWidget(QWidget):
         qt_pos_index += 1
         self.scenes_box.currentIndexChanged.connect(self._fill_cameras_box)
         self.cameras_box = QComboBox(self)
+        self.cameras_box.setAccessibleName("Cameras")
         layout.addWidget(QLabel("Cameras"), qt_pos_index, 0)
         layout.addWidget(self.cameras_box, qt_pos_index, 1)
 
         qt_pos_index += 1
         self.enable_gpu_check = QCheckBox("Cycles GPU Rendering", self)
         self.gpu_device_box = QComboBox(self)
+        self.gpu_device_box.setAccessibleName("GPU Device")
         # Natively supported GPU devices for Blender 3.6 and 4.2:
         # https://docs.blender.org/manual/en/3.6/render/cycles/gpu_rendering.html
         # https://docs.blender.org/manual/en/4.2/render/cycles/gpu_rendering.html
@@ -111,6 +124,9 @@ class SceneSettingsWidget(QWidget):
 
         # If the user wants to use another device type, let them edit the value manually
         self.gpu_device_box.setEditable(True)
+        gpu_device_line_edit = self.gpu_device_box.lineEdit()
+        if gpu_device_line_edit is not None:
+            gpu_device_line_edit.setAccessibleName("GPU Device")
 
         layout.addWidget(self.enable_gpu_check, qt_pos_index, 0)
         layout.addWidget(self.gpu_device_box, qt_pos_index, 1)
@@ -119,6 +135,7 @@ class SceneSettingsWidget(QWidget):
         qt_pos_index += 1
         self.frame_override_check = QCheckBox("Override Frame Range", self)
         self.frame_override_txt = QLineEdit(self)
+        self.frame_override_txt.setAccessibleName("Frame Range")
         layout.addWidget(self.frame_override_check, qt_pos_index, 0)
         layout.addWidget(self.frame_override_txt, qt_pos_index, 1)
         self.frame_override_check.stateChanged.connect(self.activate_frame_override_changed)
