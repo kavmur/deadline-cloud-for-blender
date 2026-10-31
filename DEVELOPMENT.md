@@ -96,7 +96,7 @@ The `pipeline/setup-runner.py` script downloads and installs Blender versions, t
 
 #### Submitter GUI Tests (integ-gui environment)
 
-`test/integ_gui/` launches real Blender with this repo's submitter add-on and opens the submitter dialog. It drives the dialog with [xa11y](https://github.com/xa11y/xa11y) and submits a job to an in-process mock Deadline Cloud backend. No AWS account is needed. The **Submitter GUI Tests** workflow (`submitter_gui_tests.yml`) runs it on Linux, macOS and Windows for every mainline push and pull request.
+Each test in `test/integ_gui/` launches real Blender with this repo's submitter add-on and opens the submitter dialog. It changes settings in the dialog with [xa11y](https://github.com/xa11y/xa11y) and presses Submit. Then it checks the CreateJob request that an in-process mock Deadline Cloud backend received, or the error the submitter showed instead. No AWS account is needed. The **Submitter GUI Tests** workflow (`submitter_gui_tests.yml`) runs them on Linux, macOS and Windows for every mainline push and pull request.
 
 To run it locally:
 
@@ -122,7 +122,11 @@ To run it locally:
      HATCH_PYTHON=python3.13 hatch run integ-gui:test'
    ```
 
-On failure the test saves a screenshot, the accessibility tree and Blender's output to `GUI_TEST_ARTIFACT_DIR`, or to a pytest temporary directory if that isn't set. CI uploads them as a workflow artifact.
+To run some of the tests, pass the test directory and a `-k` filter, for example `hatch run integ-gui:test test/integ_gui -k frame_range`.
+
+On failure a test saves a screenshot, the accessibility tree and Blender's output to its own folder under `GUI_TEST_ARTIFACT_DIR`, or under a pytest temporary directory if that isn't set. CI uploads them as a workflow artifact.
+
+To add a test, write a `configure(dialog)` function that changes the dialog through the `SubmitterDialog` helpers in `submitter_ui.py`. Then pass it to `gui_submitter.submit()`, which returns the CreateJob request, or to `gui_submitter.submit_expecting_error()`. The helpers find controls by accessible name, so give a new control in `scene_settings_widget.py` one with `setAccessibleName`. Qt on Linux ignores that name for combo boxes and uses their current text instead.
 
 ### Manual Installation
 
